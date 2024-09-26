@@ -77,6 +77,11 @@ const App = () => {
       }
       const savedBlog = await blogService.create(newNote);
       setBlogs(blogs.concat(savedBlog));
+      setIsError(false)
+      setMessage(`a new blog ${savedBlog.title} by ${savedBlog.author}`)
+      setTimeout( () => {
+        setMessage(null)
+      },3000)
       setTitle('');
       setUrl('');
       setAuthor('');
