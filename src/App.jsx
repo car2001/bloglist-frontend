@@ -56,6 +56,11 @@ const App = () => {
     }
   }
 
+  const handleLogout = async (event) => {
+    window.localStorage.removeItem('loggedUser');
+    setUser(null);
+  }
+
   const loginForm = () => (
     <LoginForm 
       handleLogin={handleLogin}
@@ -70,7 +75,8 @@ const App = () => {
     return(
       <>
         <h2>blogs</h2>
-        <p>{user?.name} logged in</p>
+        <b>{user?.name} logged in</b>
+        <button onClick={handleLogout}>logout</button>
         {blogs.map(blog =>
           <Blog key={blog.id} blog={blog} />
         )}
