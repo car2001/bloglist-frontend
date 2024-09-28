@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 import Blog from './components/Blog'
 import LoginForm from './components/LoginForm'
 import Notification from './components/Notification'
 import CreateBlogForm from './components/CreateBlogForm'
+import Toggable from './components/Toggable'
 
 import blogService from './services/blogs'
 import loginService from './services/login'
@@ -13,15 +14,11 @@ import './index.css'
 const App = () => {
 
   const [blogs, setBlogs] = useState([])
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
   const [user, setUser] = useState(null)
   const [message, setMessage] = useState(null)
   const [isError, setIsError] = useState(true);
 
-  const [title, setTitle] = useState('')
-  const [author, setAuthor] = useState('')
-  const [url, setUrl] = useState('')
+  const blogFormRef = useRef()
 
   useEffect(() => {
     if(user){
@@ -40,17 +37,14 @@ const App = () => {
     }
   }, [])
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
+  const handleLogin = async (credentials) => {
     try
     {
-      const user = await loginService.login({username, password})
+      const user = await loginService.login(credentials)
       window.localStorage.setItem('loggedUser', JSON.stringify(user))
 
       blogService.setToken(user.token)
       setUser(user);
-      setUsername('');
-      setPassword('');
     }
     catch(exception){
       setIsError(true);
@@ -66,20 +60,12 @@ const App = () => {
     setUser(null);
   }
 
-  const handleCreateBlog = async (event) => {
-    event.preventDefault();
+  const handleCreateBlog = async (newBlog) => {
+    blogFormRef.current.toggleVisibility()
     try
     {
-      const newNote = {
-        title, 
-        author, 
-        url
-      }
-      const savedBlog = await blogService.create(newNote);
+      const savedBlog = await blogService.create(newBlog);
       setBlogs(blogs.concat(savedBlog));
-      setTitle('');
-      setUrl('');
-      setAuthor('');
     }
     catch(exception) {
       setIsError(true);
@@ -91,53 +77,88 @@ const App = () => {
 
   }
 
+  const onClickLike = async (blog) => {
+    try
+    {
+      const changedBlog = {...blog, likes: blog.likes + 1}
+
+      const returnedBlog = await blogService.update(changedBlog);
+      const newBlogs = blogs.map(b => b.id !== blog.id ? b : returnedBlog )
+      setBlogs(newBlogs);
+    }
+    catch(exception){
+      setIsError(true);
+      setMessage(exception.response.data.error)
+      setTimeout( () => {
+        setMessage(null)
+      },3000)
+    }
+  }
+
+  const handleRemovePress = async (idBlog) => {
+    try
+    {
+      const foundBlog = blogs.find(blog => blog.id = idBlog);
+      if(foundBlog){
+        const isRemove = window.confirm(`Remove blog ${foundBlog.title} by ${foundBlog.author}`)
+        if(isRemove){
+          await blogService.deleteBlog(idBlog);
+          const updateBlogs = blogs.filter(blog => blog.id !== idBlog);
+          setBlogs(updateBlogs)
+        }
+      }
+    }
+    catch(exception) 
+    {
+      setIsError(true);
+      setMessage(exception.response.data.error)
+      setTimeout( () => {
+        setMessage(null)
+      },3000)
+    }
+  }
+
   const loginForm = () => (
-    <LoginForm 
-      handleLogin={handleLogin}
-      username={username}
-      password={password}
-      setUsername={setUsername}
-      setPassword={setPassword}
-    />
+    <Toggable buttonLabel="login">
+      <LoginForm 
+        handleLogin={handleLogin}
+      />
+    </Toggable>
   )
 
   const listBlogs = () => {
     return(
       <>
-        <Notification message={message} isError={isError}  />
-        <h2>blogs</h2>
         <b>{user?.name} logged in</b>
         <button onClick={handleLogout}>logout</button>
-        <h2>Create new note</h2>
-        <CreateBlogForm
-          title={title}
-          author={author}
-          url={url}
-          setTitle={setTitle}
-          setAuthor={setAuthor}
-          setUrl={setUrl}
-          handleCreateBlog={handleCreateBlog}
-        />
+        <Toggable buttonLabel="new note" ref={blogFormRef}>
+          <CreateBlogForm handleCreateBlog={handleCreateBlog} />
+        </Toggable>
+        <h2>Blog List</h2>
         {blogs.map(blog =>
-          <Blog key={blog.id} blog={blog} />
+          <Blog 
+            key={blog.id} 
+            blog={blog} 
+            handleRemovePress = {() => handleRemovePress(blog.id)}
+            onClickLike={() => onClickLike(blog) } 
+          />
         )}
       </>
     )
   }
 
-  if (user === null) {
-      return(
-        <>
-          <Notification message={message} isError={isError}  />
-          {loginForm()}
-        </>
-      )
-  }
-  
-
   return (
     <div>
-      {listBlogs()}
+      <Notification 
+        message={message} 
+        isError={isError}  
+      />
+      <h2>Blogs</h2>
+      { user === null ? 
+        loginForm() : 
+        listBlogs()
+      }
+
     </div>
   )
 }
