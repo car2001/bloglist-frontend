@@ -66,6 +66,9 @@ const App = () => {
     {
       const savedBlog = await blogService.create(newBlog);
       setBlogs(blogs.concat(savedBlog));
+      setTitle('');
+      setUrl('');
+      setAuthor('');
     }
     catch(exception) {
       setIsError(true);
