@@ -31,7 +31,7 @@ const Blog = ({ blog, onClickLike, handleRemovePress }) => {
         <b>{blog.title} - {blog.author} </b>
         <button onClick={toggleVisibility}>{labelButton}</button>
       </div>
-      <div style={isVisibleDetail} >
+      <div style={isVisibleDetail} className="detail-section" >
         <span>{blog.url}</span><br/>
         <span>
           likes <b>{blog.likes} </b> 
